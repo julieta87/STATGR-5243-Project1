@@ -1,0 +1,216 @@
+---
+title: "Impact of Ride-Sharing on NYC Taxi Industry: A Data-Driven Analysis (2014-2017)"
+format: pdf
+editor: visual
+---
+
+STAT GR 5243 Applied Data Science Project 1
+
+February 19, 2024
+
+Team:
+
+#### Introduction
+
+Over the past decade, the rapid expansion of rideshare services like Uber and Lyft has reshaped urban transportation worldwide. Nowhere is this shift more apparent than in New York City, where traditional yellow taxis---once the dominant for-hire option---have seen ridership patterns evolve dramatically. This project investigates the period from 2014 to 2017, a time when disruptive newcomers captured growing market share and heightened competitive pressures for taxi operators. By cleaning, merging, and analyzing comprehensive trip data from the New York City Taxi and Limousine Commission (TLC), we aim to uncover how these changes affected daily ridership trends, fare structures, and passenger behaviors. Through feature engineering and exploratory data analysis, our goal is to provide a data-driven perspective on the yellow taxi industry's adaptation---or lack thereof---to an increasingly competitive marketplace.
+
+#### Background
+
+New York City's yellow taxis have long been an essential part of the city's transportation network, providing reliable service to millions of residents and visitors. Unlike other for-hire vehicles, taxis have the exclusive right to pick up passengers through street hails anywhere in the city, making them a convenient option, particularly in high-demand areas such as Manhattan and major transit hubs like JFK and LaGuardia airports. The industry operates under a strict medallion system, established in 1937 to regulate the number of taxis on the road. Each yellow taxi must have a medallion affixed to it, and the number of medallions is legally capped at 13,587. These medallions are auctioned by the city and can also be transferred on the open market by licensed brokers. For many years, taxi medallions were considered highly valuable assets, reaching peak prices of over one million dollars.
+
+For decades, yellow taxis were the primary mode of for-hire transportation in New York City, serving as a lifeline for commuters, tourists, and residents alike. Their widespread presence and regulation ensured a standardized fare system, providing passengers with predictable pricing and service. Today, they remain an integral part of the city's transportation landscape, offering on-demand rides that continue to serve millions of passengers each year.
+
+#### About the Data set
+
+The dataset used for this analysis comes from the New York City Taxi and Limousine Commission (TLC) Trip Records, a publicly available database that provides detailed trip-level data for yellow taxis from 2009 to 2024. The TLC, established in 1971, is responsible for regulating and licensing New York City's medallion taxis, green taxis, for-hire vehicles (FHVs), commuter vans, and paratransit vehicles. The trip data is collected through Technology Service Providers (TSPs), which are third-party vendors responsible for managing electronic metering, credit card transactions, and GPS tracking in taxis. These TSPs automatically transmit ride details to the TLC, creating a comprehensive digital record of each taxi trip.
+
+Each trip record in the dataset represents a single completed ride by a TLC-licensed vehicle. The data includes a timestamped log of when and where passengers were picked up and dropped off, measured using GPS coordinates or, in later years, taxi zone IDs. The trip record also logs trip distance in miles, fare amounts, surcharges, tolls, payment types, and driver-reported passenger counts. Since 2013, data collection has expanded to include green taxis, which serve areas outside of central Manhattan, and in 2015, the dataset was made publicly available online through the NYC Open Data Portal.
+
+To ensure transparency and accuracy, TLC trip records are continuously updated and released every six months. The data is initially stored in Parquet format, a highly efficient columnar storage format used for handling large-scale data. This format allows for fast queries and compact storage, making it ideal for datasets containing millions of trip records per month.
+
+The granularity of the dataset allows for in-depth exploration of taxi ridership trends, fare revenue, geographic travel patterns, and seasonal fluctuations in NYC's transportation system. However, while the TLC collects and releases this data, it does not directly verify every trip record. The accuracy of certain fields, such as passenger count or payment type, depends on driver input, meaning occasional inconsistencies may exist.
+
+The structure of the data covers every month individually for each year. Each month roughly contains over 2 million rows with each row as a single taxi ride. Below gives a description of the columns and what is covered in the data.
+
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Column Name           | Description                                                                                                                                  |
++=======================+==============================================================================================================================================+
+| Vendor ID             | A code indicating the TPEP provider that provided the record. 1= Creative Mobile Technologies, LLC; 2= VeriFone I                            |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| tpep_pickup_datetime  | date and time when meter was engaged                                                                                                         |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| tpep_dropoff_datetime | date and time when meter was disengaged                                                                                                      |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Passenger_count       | Number of passengers in vehicle                                                                                                              |
+|                       |                                                                                                                                              |
+|                       | Manually entered value by driver                                                                                                             |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Trip_distance         | The elapsed trip distance in miles reported by the taximeter.                                                                                |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| PULocationID          | TLC Taxi Zone in which the taximeter was engaged                                                                                             |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| DOLocationID          | TLC Taxi Zone in which the taximeter was disengaged                                                                                          |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| RateCodeID            | The final rate code in effect at the end of the trip. 1= Standard rate 2=JFK 3=Newark 4=Nassau or Westchester 5=Negotiated fare 6=Group ride |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Store_and_fwd_flag    | This flag indicates whether the trip record was held in vehicle                                                                              |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Payment_type          | A numeric code signifying how the passenger paid for the trip. 1= Credit card 2= Cash 3= No charge 4= Dispute 5= Unknown 6= Voided trip      |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Fare_amount           | The time-and-distance fare calculated by the meter.                                                                                          |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Extra                 | Miscellaneous extras and surcharges. Currently, this only includes the \$0.50 and \$1 rush hour and overnight charges.                       |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| MTA_tax               | \$0.50 MTA tax that is automatically triggered based on the metered rate in use                                                              |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Improvement_surcharge | \$0.30 improvement surcharge assessed trips at the flag drop. The improvement surcharge began being levied in 2015.                          |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Tip_amount            | This field is automatically populated for credit card tips. Cash tips are not included.                                                      |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Tolls_amount          | Tolls_amount Total amount of all tolls paid in trip.                                                                                         |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Total_amount          | The total amount charged to passengers. Does not include cash tips.                                                                          |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Congestion_Surcharge  | Total amount collected in trip for NYS congestion surcharge.                                                                                 |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+| Airport_fee           | \$1.25 for pick up only at LaGuardia and John F. Kennedy Airports                                                                            |
++-----------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
+
+: Table 1: Dataset Columns and Description
+
+#### Objective
+
+The objective of this study is to conduct a comprehensive analysis of NYC yellow taxi ridership trends from 2014 to 2017, a pivotal period that saw a dramatic shift in urban transportation dynamics. By leveraging large-scale trip data from the New York City Taxi and Limousine Commission (TLC), we aim to uncover the underlying factors that contributed to the decline of yellow taxi usage and the rise of alternative transportation options.
+
+Our research will focus on identifying patterns in taxi trip and exploratory data analysis on volume, revenue fluctuations, fare adjustments, and borough-specific variations to assess how external disruptions reshaped the industry. We will investigate whether taxis responded with fare increases, longer trip distances, or operating in specific locations. Lastly, we aim to observe when and how NYC taxis lost their market dominance.
+
+#### Data Cleaning & Preprocessing
+
+We started with merging all months of each year. We first converted the date columns `tpep_pickup_datetime` and `tpep_dropoff`\_datetime to datetime format and dropped rows with incorrect datetime, specifically those with invalid year. We also filtered out records where the `passenger_count` and `trip_distance` were both zero, which could be due to taxi drivers' manual input mistakes. Since `congestion_surcharge` and `airport_fee` became effective after the dataset's timeframe, these two columns contained only NA values so we decided to remove them. Upon checking duplicates, we found none. Finally, we handled outliers by removing extreme outliers such as negative values from all charge related numeric variables and unrealistically long trip distances from `trip_distance`. Below is some code to highlight this through a function created to apply to our merged years:
+
+```{python}
+def preprocess_data(df):
+    columns_to_keep = ["tpep_pickup_datetime", "tpep_dropoff_datetime", "passenger_count",
+                       "trip_distance", "payment_type", "fare_amount", "tip_amount", "total_amount", "PULocationID", 
+                       "DOLocationID"]
+    
+    df = df[columns_to_keep].copy()
+    
+    df["tpep_pickup_datetime"] = pd.to_datetime(df["tpep_pickup_datetime"])
+    df["tpep_dropoff_datetime"] = pd.to_datetime(df["tpep_dropoff_datetime"])
+    
+    df = df[(df["fare_amount"] > 0) & (df["trip_distance"] > 0)]
+
+    df["trip_duration"] = (df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]).dt.total_seconds() / 60
+    
+    df = df[(df["trip_duration"] > 1) & (df["trip_duration"] < 300)]
+    
+    return df
+```
+
+\
+Since we are working with a huge amount of data, we condensed the yearly data through grouping by pickup date and computing the average values and summation of all numeric columns of each day. Some new columns were added to each year's dataset before the feature engineering due to efficiency. There were originally two columns relating to the pickup and dropoff location ID. Referring to a taxi zone lookup table from TLC, we changed the location ID to the name of NYC's boroughs and counted the number of boroughs that appeared in daily trips. The purpose of other created columns will be discussed in the feature engineering section. Ultimately, we combined all four-year data and the final dataset we worked on for analysis has roughly 365\*4 rows and 23 columns presented below. 
+
+-   `pickup_date`: the date of the trips in Y-M-D format.
+
+-   `day of week`: day of week corresponding to the date.
+
+-   `avg fares`: averaged time-and-distance fare calculated by the meter.
+
+-   `total fares`: total fares of all trips among a single day.
+
+-   `tip percentage`: overall tip percentage of a day.
+
+-   `duration`: the average length of time in minutes of all day's trips.
+
+-   `frequency_of_rides`: the number of trip for each day
+
+-   `avg trip distance`: the average of the elapsed trip distance in miles reported by the taximeter of a day.
+
+-   `tip amount avg`: the average tip amount from credit card. Cash tips are not included.
+
+-   `avg passengers`: the average number of passengers of all day's trips. 
+
+-   `sum of passengers`: total number of passengers of a day.
+
+-   `avg fare per mile`: the average amount a passenger pays per mile traveled.
+
+-   The remaining 14 columns are the numberof pickups and drop-offs per borough on a day.\
+
+#### Feature Engineering
+
+Before merging all years data, we added some columns to each yearly dataset. To further study the effect of the rising popularity of external ride-share services on yellow taxis, a new column named trip duration is created to the effect on trip length, and speed. Additionally, we also added columns of fare per mile and tip percentage to assess the change of pricing trending. In order to inspect the change of ride demand pattern, we extracted the day of week from the datetime column.
+
+Feature engineering allowed us to conduct data analysis (EDA) on the features in order to comprehend the evolution of ride patterns and the potential effects of external ride-share competition on yellow cab operations. In particular, we obtained a better understanding of passenger behavior, possible changes in geographic demand, and pricing patterns over time by looking at trip duration, fare per mile, and tip percentage---as well as the borough-specific columns obtained from the TLC taxi zone lookup table. Below is some code on how this process was done on 2014 merged data, which was then applied to the other merged years.
+
+``` python
+pickup_df = df_2014_cleaned.merge(taxi_data[['LocationID', 'Borough']], 
+                              left_on="PULocationID", right_on="LocationID", 
+                              how="left")
+pickup_df.rename(columns={"Borough": "Pickup_Borough"}, inplace=True)
+pickup_df.drop(columns=["LocationID"], inplace=True)
+
+dropoff_df = df_2014_cleaned.merge(taxi_data[['LocationID', 'Borough']], 
+                               left_on="DOLocationID", right_on="LocationID", 
+                               how="left")
+dropoff_df.rename(columns={"Borough": "Dropoff_Borough"}, inplace=True)
+dropoff_df.drop(columns=["LocationID"], inplace=True)
+
+pickup_tallies = pickup_df.groupby(["pickup_date", "Pickup_Borough"]).size().reset_index(name="Count")
+pickup_pivot = pickup_tallies.pivot(index="pickup_date", columns="Pickup_Borough", values="Count").fillna(0)
+pickup_pivot.columns = [f"{col}_Pickups" for col in pickup_pivot.columns]
+
+dropoff_tallies = dropoff_df.groupby(["pickup_date", "Dropoff_Borough"]).size().reset_index(name="Count")
+dropoff_pivot = dropoff_tallies.pivot(index="pickup_date", columns="Dropoff_Borough", values="Count").fillna(0)
+dropoff_pivot.columns = [f"{col}_Dropoffs" for col in dropoff_pivot.columns]
+
+final_borough_tallies_2014 = pickup_pivot.join(dropoff_pivot, how="outer").reset_index()
+```
+
+Another column we decided to create was `fare per mile` (fare_amount / trip_distance). This provided a window into evolving pricing tactics. A steady drop in fare per mile could indicate increased competition, with yellow taxis reacting to ride-sharing services by cutting prices or running specials. On the other hand, an upward trend can indicate that riders are taking longer, fewer rides, or that prices and surcharges have gone higher in relation to the extent of the journey. Below is some code applied on 2015 merged dataset to highlight this
+
+```{python}
+daily_counts_2015 = df_2015_cleaned.groupby('pickup_date').size().rename("frequency_of_rides")
+
+df_2015_cleaned['fare_per_mile'] = df_2015_cleaned['fare_amount'] / df_2015_cleaned['trip_distance']
+
+daily_agg_2015 = df_2015_cleaned.groupby('pickup_date').agg({
+    'fare_amount': ['mean', 'sum'],         # avg fares, total fares
+    'trip_duration': 'mean',                # duration (average)
+    'trip_distance': 'mean',                # avg trip distance
+    'tip_amount': ['mean', 'sum'],          # tip amount average, total tip amount
+    'passenger_count': ['mean', 'sum'],      # avg passengers, sum of passengers
+    'fare_per_mile': 'mean'                 # avg fare per mile
+}).reset_index()
+```
+
+We also created a new feature for the tip percentage. The bar chart below illustrates the average tip percentage for each day of the week, providing a straightforward view of whether riders are more inclined to tip generously on certain days. The overall differences between days appear modest, though small variations do emerge---some weekdays may show slightly higher tipping, while weekends can fluctuate. Such patterns could reflect factors like a heavier mix of tourists, business travelers, or local residents on particular days, each group with its own tipping behavior. By comparing these daily averages, we can gauge if specific days consistently see higher or lower tip rates, potentially prompting targeted strategies such as weekend promotions or weekday service adjustments.
+
+```{r, echo=FALSE, out.width="30%", fig.align="center"}
+  knitr::include_graphics("tips_percentage.png")
+
+```
+
+In understanding the overall cost dynamics of taxi rides, we implemented the column fare_per_passenger, which provides a clear look at how expenses are distributed among riders. By examining how much each passenger typically pays, we can gauge affordability, pricing consistency, and potential outliers within the system. This visualization compares a histogram (on the left) and a boxplot (on the right), both of which reveal key insights into how `fare_per_passenger`  is distributed across all trips in the dataset.
+
+
+``` python
+daily_summary_features['fare_per_passenger'] = (
+    daily_summary_features['total fares'] / daily_summary_features['sum of passengers']
+)
+
+five_boroughs = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"]
+
+for borough in five_boroughs:
+    col_name = borough.lower().replace(" ", "_")
+    
+    daily_summary_features[f"{col_name}_pickup_share"] = (
+        daily_summary_features[f"{borough}_Pickups"] / daily_summary_features["frequency_of_rides"]
+    )
+    
+    daily_summary_features[f"{col_name}_dropoff_share"] = (
+        daily_summary_features[f"{borough}_Dropoffs"] / daily_summary_features["frequency_of_rides"]
+    )
+    
+```
+
