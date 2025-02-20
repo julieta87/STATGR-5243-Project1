@@ -1,5 +1,7 @@
 # STATGR-5243-Project1
 Project 1 
 First step we looked at alot of potential datasets for us to work on. One of them was:
-1. NYC Taxi Trip Data https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page (have to convert from PARQUET to csv 
-
+1. NYC Taxi Trip Data https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+2. Once you download the years and months you want to look at, you have to convert it (from PARQUET to csv). You can either use an online converter, or use code provided here to run.
+3. The code provided here is downloadable, and as long as you have the files downloaded, you can run the code on the files. *Note: it does take a while for the data to run since it is very large (15 minutes average)   
+We each played around and explored a given year, so there are multiple .py files here. 
